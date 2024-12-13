@@ -1,0 +1,308 @@
+import java.util.ArrayList;
+import java.util.Scanner;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+public class BloodDonationSystem {
+
+    static ArrayList<Donor> donors = new ArrayList<>();
+    static ArrayList<Recipient> recipients = new ArrayList<>();
+    static Donor currentDonor = null;
+    static ArrayList<Donation> donations = new ArrayList<>();
+    
+    public static void main(String[] args) {
+        // Initialize some recipients
+        initializeRecipients();
+
+        // Display the logo and welcome screen
+        logo();
+        
+        // Main loop for login/registration
+        while (true) {
+            int choice = showMainMenu();
+            if (choice == 1) {
+                login();
+            } else if (choice == 2) {
+                register();
+            } else if (choice == 3) {
+                System.out.println("Exiting the application...");
+                break;
+            }
+        }
+    }
+
+    // Method to display the logo and welcome screen
+    public static void logo() {
+        System.out.println("\n\n\n\n");
+        System.out.println("\u001B[1;34m\t\t\t\t\t\t**");
+        System.out.println("\t\t\t\t\t\t*        Blood Donation Management   *");
+        System.out.println("\t\t\t\t\t\t*         System Logo               *");
+        System.out.println("\u001B[1;34m\t\t\t\t\t\t**\n");
+        System.out.println("\u001B[1;32m\t\t\t\t\t\t*");
+        System.out.println("\t\t\t\t\t\t*      Welcome to Blood Donation      *");
+        System.out.println("\t\t\t\t\t\t* Your one-stop blood donation system *");
+        System.out.println("\u001B[1;32m\t\t\t\t\t\t*\n");
+        System.out.println("\u001B[0m");
+    }
+
+    // Method to show the main menu
+    public static int showMainMenu() {
+        Scanner sc = new Scanner(System.in);
+        int choice = -1;
+        while (choice < 1 || choice > 3) {
+            try {
+                System.out.println("\n\nMain Menu:");
+                System.out.println("1. Login");
+                System.out.println("2. Sign Up");
+                System.out.println("3. Exit");
+                System.out.print("Enter your choice: ");
+                choice = Integer.parseInt(sc.nextLine());
+                
+                if (choice < 1 || choice > 3) {
+                    System.out.println("Invalid choice. Please choose between 1, 2, or 3.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input! Please enter a valid number.");
+            }
+        }
+        return choice;
+    }
+
+    // Method for login functionality
+    public static void login() {
+        Scanner sc = new Scanner(System.in);
+        String username = "";
+        String password = "";
+        
+        try {
+            System.out.print("\nEnter username: ");
+            username = sc.nextLine();
+            System.out.print("Enter password: ");
+            password = sc.nextLine();
+
+            boolean found = false;
+            for (Donor donor : donors) {
+                if (donor.getUsername().equals(username) && verifyPassword(password, donor.getPassword())) {
+                    currentDonor = donor;
+                    found = true;
+                    System.out.println("Login successful!");
+                    postLoginInterface();
+                    return;
+                }
+            }
+
+            if (!found) {
+                System.out.println("Invalid username or password.");
+            }
+        } catch (Exception e) {
+            System.out.println("Error while logging in: " + e.getMessage());
+        }
+    }
+
+    // Method for user registration
+    public static void register() {
+        Scanner sc = new Scanner(System.in);
+        String username = "", password = "", email = "", bloodType = "";
+
+        try {
+            System.out.print("\nEnter username: ");
+            username = sc.nextLine();
+            System.out.print("Enter password: ");
+            password = sc.nextLine();
+            System.out.print("Enter email: ");
+            email = sc.nextLine();
+            System.out.print("Enter blood type: ");
+            bloodType = sc.nextLine();
+
+            // Hash the password before storing it
+            String hashedPassword = hashPassword(password);
+
+            Donor newDonor = new Donor(username, hashedPassword, email, bloodType);
+            donors.add(newDonor);
+            System.out.println("Registration successful! You can now log in.");
+        } catch (Exception e) {
+            System.out.println("Error while registering: " + e.getMessage());
+        }
+    }
+
+    // Method to hash the password using SHA-256
+    public static String hashPassword(String password) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] hashBytes = md.digest(password.getBytes());
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : hashBytes) {
+            hexString.append(String.format("%02x", b));
+        }
+        return hexString.toString();
+    }
+
+    // Method to verify the entered password by comparing hashed values
+    public static boolean verifyPassword(String enteredPassword, String storedHashedPassword) {
+        try {
+            String hashedEnteredPassword = hashPassword(enteredPassword);
+            return hashedEnteredPassword.equals(storedHashedPassword);
+        } catch (NoSuchAlgorithmException e) {
+            System.out.println("Error verifying password: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // Method for the post-login interface
+    public static void postLoginInterface() {
+        Scanner sc = new Scanner(System.in);
+        while (true) {
+            System.out.println("\nWelcome " + currentDonor.getUsername() + "!");
+            System.out.println("Post-login Menu:");
+            System.out.println("1. View Available Recipients");
+            System.out.println("2. Donate Blood");
+            System.out.println("3. Donation History");
+            System.out.println("4. Logout");
+            System.out.print("Enter your choice: ");
+            int choice = -1;
+            
+            try {
+                choice = Integer.parseInt(sc.nextLine());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input! Please enter a valid number.");
+                continue;
+            }
+
+            if (choice == 1) {
+                viewRecipients();
+            } else if (choice == 2) {
+                donateBlood();
+            } else if (choice == 3) {
+                viewDonationHistory();
+            } else if (choice == 4) {
+                logout();
+                break;
+            } else {
+                System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+
+    // Method to view available recipients
+    public static void viewRecipients() {
+        System.out.println("\nAvailable Recipients:");
+        for (Recipient recipient : recipients) {
+            System.out.println(recipient.getName() + " | Blood Type: " + recipient.getBloodType());
+        }
+    }
+
+    // Method to donate blood
+    public static void donateBlood() {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("\nEnter recipient's name to donate blood: ");
+        String recipientName = sc.nextLine();
+        
+        boolean recipientFound = false;
+        for (Recipient recipient : recipients) {
+            if (recipient.getName().equalsIgnoreCase(recipientName)) {
+                donations.add(new Donation(currentDonor, recipient));
+                System.out.println("Blood donated successfully to " + recipient.getName());
+                recipientFound = true;
+                break;
+            }
+        }
+        
+        if (!recipientFound) {
+            System.out.println("Recipient not found. Please check the name and try again.");
+        }
+    }
+
+    // Method to view donation history
+    public static void viewDonationHistory() {
+        if (donations.isEmpty()) {
+            System.out.println("\nYou have not donated any blood.");
+        } else {
+            System.out.println("\nYour donation history:");
+            for (Donation donation : donations) {
+                System.out.println("Donation to " + donation.getRecipient().getName() + " | Blood Type: " + donation.getRecipient().getBloodType());
+            }
+        }
+    }
+
+    // Method to logout
+    public static void logout() {
+        currentDonor = null;
+        System.out.println("Logged out successfully.");
+    }
+
+    // Initialize some recipients
+    public static void initializeRecipients() {
+        recipients.add(new Recipient("John Doe", "O+"));
+        recipients.add(new Recipient("Jane Smith", "A+"));
+        recipients.add(new Recipient("Alice Johnson", "B+"));
+        recipients.add(new Recipient("Bob Brown", "AB+"));
+    }
+
+    // Donor class
+    static class Donor {
+        private String username;
+        private String password;
+        private String email;
+        private String bloodType;
+
+        public Donor(String username, String password, String email, String bloodType) {
+            this.username = username;
+            this.password = password;
+            this.email = email;
+            this.bloodType = bloodType;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public String getBloodType() {
+            return bloodType;
+        }
+    }
+
+    // Recipient class
+    static class Recipient {
+        private String name;
+        private String bloodType;
+
+        public Recipient(String name, String bloodType) {
+            this.name = name;
+            this.bloodType = bloodType;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getBloodType() {
+            return bloodType;
+        }
+    }
+
+    // Donation class
+    static class Donation {
+        private Donor donor;
+        private Recipient recipient;
+
+        public Donation(Donor donor, Recipient recipient) {
+            this.donor = donor;
+            this.recipient = recipient;
+        }
+
+        public Donor getDonor() {
+            return donor;
+        }
+
+        public Recipient getRecipient() {
+            return recipient;
+        }
+    }
+}
